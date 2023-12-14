@@ -2,10 +2,13 @@ import express from "express";
 import ytdl from "ytdl-core";
 import crypto from "crypto";
 import fs from "fs";
-import { videoDownloadOnly, videoAudioDownloadBoth, decodeURLAndFolderName } from "./download.js";
+import {
+  videoDownloadOnly,
+  videoAudioDownloadBoth,
+  decodeURLAndFolderName,
+} from "./download.js";
 
 const router = express.Router();
-
 
 // NOTE: ':yt_link' must be encoded using encodeURIComponent() before hitting the endpoint
 router.get("/video-info/:yt_link", async (req, res) => {
@@ -129,90 +132,123 @@ router.get("/video-download/:yt_link", async (req, res) => {
     }
 
     const filePath = `${folder_path}/${fileName}`;
-    console.log(filePath)
+    console.log(filePath);
     // Send a response to the client
     res.json({
       itag: optionsDownload[reqested_quality].itag,
       quality: reqested_quality,
       filePath: encodeURIComponent(filePath),
+      fileName: fileName,
     });
-
-
-    
-
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
-
 // to handle and avoid multiple download request
 let isDownloadInProgress = false;
 
 // must give the correct file path
-router.get('/:filePath',(req,res)=>{
-    const filePath=req.params.filePath;// extracting :filePath from the url
-    try {
-      if (isDownloadInProgress) {
-        // If a download is already in progress, send a response indicating that
-        res.status(409).send("Download already in progress");
-        return;
-      }
-
-      const fileName = `Be aware  Else you will be finished.mp4`;
-
-      isDownloadInProgress = true;
-      res.download(filePath, fileName,(err) => {
-        isDownloadInProgress = false; // Reset the flag when the download is complete or encounters an error
-
-        if (err) {
-          // Handle error, such as file not found
-          console.error("Error downloading file:", err);
-        } else {
-          console.log("File downloaded successfully");
-          const folderPath=decodeURLAndFolderName(filePath);
-          //deleting file after the download has finished
-          fs.unlinkSync(filePath)
-          fs.unlink(`Downloads/${folderPath}/audio.webm`,(error)=>{
-            if (error) {
-              console.log("Error Deleteing File audio.webp");
-            } else {
-              console.log("Successfully Deleted audio.webp");
-            }
-          })
-          fs.unlink(`Downloads/${folderPath}/video.mp4`,(error)=>{
-            if(error){
-              console.log("Error Deleteing File video.mp4");
-            }
-            else{
-              console.log("Successfully Deleted video.mp4")
-            }
-          })
-          fs.unlink(`Downloads/${folderPath}/video.webm`,(error)=>{
-            if (error) {
-              console.log("Error Deleteing File video.webm");
-            } else {
-              console.log("Succesfully Deleted video.webm");
-            }
-          })
-          fs.rmdir(`Downloads/${folderPath}`,(error)=>{
-            if(error){
-              console.log("Error Deleting File:",error.message)
-            }
-            else{
-              console.log(`Deleted Successfully Deleted Folder-${folderPath}`)
-            }
-          });
-          
-        }
-      });
-    } catch (error) {
-      console.log(error);
+router.get("/:filePath", (req, res) => {
+  const filePath = req.params.filePath; // extracting :filePath from the url
+  try {
+    if (isDownloadInProgress) {
+      // If a download is already in progress, send a response indicating that
+      res.status(409).send("Download already in progress");
+      return;
     }
-})
 
+    const fileName = req.body.fileName || "output.mp4";
 
+    isDownloadInProgress = true;
+    res.download(filePath, fileName, (err) => {
+      isDownloadInProgress = false; // Reset the flag when the download is complete or encounters an error
 
+      if (err) {
+        // Handle error, such as file not found
+        console.error("Error downloading file:", err);
+        // deleting files and folder cause File Download Failed
+        const folderPath = decodeURLAndFolderName(filePath);
+        fs.unlink(filePath,(error)=>{
+          if (error) {
+            console.log(`Error Deleteing File ${filePath}`);
+          } else {
+            console.log(`Successfully Deleted ${filePath}`);
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File audio.webp");
+          } else {
+            console.log("Successfully Deleted audio.webp");
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File video.mp4");
+          } else {
+            console.log("Successfully Deleted video.mp4");
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File video.webm");
+          } else {
+            console.log("Succesfully Deleted video.webm");
+          }
+        });
+        fs.rmdir(`Downloads/${folderPath}`, (error) => {
+          if (error) {
+            console.log("Error Deleting File:", error.message);
+          } else {
+            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
+          }
+        });
+      } else {
+        console.log("File downloaded successfully");
+        const folderPath = decodeURLAndFolderName(filePath);
+        //deleting file after the download has finished
+        fs.unlink(filePath, (error) => {
+          if (error) {
+            console.log(`Error Deleteing File ${filePath}`);
+          } else {
+            console.log(`Successfully Deleted ${filePath}`);
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File audio.webp");
+          } else {
+            console.log("Successfully Deleted audio.webp");
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File video.mp4");
+          } else {
+            console.log("Successfully Deleted video.mp4");
+          }
+        });
+        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
+          if (error) {
+            console.log("Error Deleteing File video.webm");
+          } else {
+            console.log("Succesfully Deleted video.webm");
+          }
+        });
+        fs.rmdir(`Downloads/${folderPath}`, (error) => {
+          if (error) {
+            console.log("Error Deleting File:", error.message);
+          } else {
+            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+});
 
 export default router;
