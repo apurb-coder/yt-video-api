@@ -1,24 +1,136 @@
+# You-Tube Video Downloader API
 
-## FEATURES:
-1. if video name contain unwanted special character it removes them , because special characters doesn't allows ffmpeg to work well 
-2. can download in higest possible quality to lowest possible quality of youtube videos
-3. yt allow us to download 2160p video without audio, then why downloaded 2160p have audio? we did this by combining 2160p(without audio) + audio seperatly using ffmpeg
-4. yt allow us to download 1080p video without audio, then why downloaded 1080p have audio? we did this by combining 1080p(without audio) + audio seperatly using ffmpeg
+This API provides functionality to retrieve information about YouTube videos, download videos, and manage downloaded files on the server.
 
----------------------------------------------------------------------------------------------------
+## Features
 
-## NOTE : 
-1. before hiting any end points in the api , always encodeURIComponent() the url , url should be encoded or it will cause error, :yt_link, param must be encoded using encodeURIComponent().
+1. If the video name contains unwanted special characters, it removes them because special characters can interfere with ffmpeg's functionality.
 
-2. also send {"quality":"2160p"} from front-end when hitting end-point /video-download/:yt_link
+2. Can download YouTube videos in the highest possible quality to the lowest possible quality.
 
-3. also send {"fileName":"output.mp4"} from front-end when hitting endpoint  /:filePath
+3. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
----------------------------------------------------------------------------------------------------
+4. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
-## 3 END POINTS:
-1. /video-info/:yt_link => used get video information like video , title, video duration, thubmline
+## Note
 
-2. /video-download/:yt_link => used to download yt video in the server folder "/Downloads",  when you hit this endpoint also send obj {"quality":"your_quality_choice"} in the body of the request for mentioning video quality.
+1. Before hitting any endpoints in the API, always use `encodeURIComponent()` for the URL. The `:yt_link` parameter must be encoded using `encodeURIComponent()`.
 
-3. /:filePath => when you hit this end point , the video is downloaded from the "/filePath". After downloading is Completed all the files included the folder is deleted. To save server storage. When you hit this endpoint also send obj {"fileName":"output.mp4"} in the body of the request for mentioning video fileName.
+2. When hitting the endpoint `/video-download/:yt_link`, send `{"quality":"2160p"}` from the front-end to specify the desired video quality.
+
+3. When hitting the endpoint `/:filePath`, send `{"fileName":"output.mp4"}` from the front-end to specify the desired video file name.
+
+## 3 Endpoints
+
+| Endpoint                                  | Method | Description                                                      |
+|-------------------------------------------|--------|------------------------------------------------------------------|
+| `/video-info/:yt_link`                    | GET    | Retrieve information about a YouTube video.                      |
+| `/video-download/:yt_link`                | GET    | Download a YouTube video to the server.                          |
+| `/:filePath`                              | GET    | Serve the downloaded video to the client.                        |
+
+### 1. Get Video Information
+
+#### Endpoint
+
+```http
+  GET /api/items/${id}
+```
+
+#### Description
+Retrieve information about a YouTube video, including title, duration, and thumbnails.
+
+#### Parameters
+- `yt_link`: YouTube video link (URL-encoded using encodeURIComponent())
+
+#### Response
+Returns a JSON object containing video information and available download options.
+
+### 2. Download YouTube Video
+
+#### Endpoint
+
+```http
+  GET /video-download/:yt_link
+```
+
+#### Description
+Download a YouTube video to the server. Include an object in the request body with the desired video quality.
+
+#### Parameters
+- `yt_link`: YouTube video link (URL-encoded using encodeURIComponent())
+- Request Body:
+  ```json
+    {
+    "quality": "your_quality_choice"
+    }
+  ```
+
+#### Response
+Returns a JSON object with information about the downloaded video, including quality, file path, and file name.
+
+
+### 3. Serve Downloaded Video
+
+```http
+ GET /:filePath
+```
+
+#### Description
+Serve the downloaded video to the client. The server deletes the downloaded files after the download is complete or encounters an error. Include an object in the request body with the desired video file name.
+
+#### Parameters
+- `filePath`: Path to the downloaded video file (URL-encoded using encodeURIComponent())
+
+- Request Body:
+```json
+{
+  "fileName": "output.mp4"
+}
+```
+
+> [!TIP]
+> you can get the `fileName` from the response of `/video-download/:yt_link` 
+
+-----------------------
+
+## Example Usage
+
+``` js
+// Example request using axios
+const axios = require('axios');
+
+// Get Video Information
+axios.get('/video-info/:yt_link')
+  .then(response => {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.error(error);
+  });
+
+// Download YouTube Video
+axios.get('/video-download/:yt_link', { data: { "quality": "your_quality_choice" } })
+  .then(response => {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.error(error);
+  });
+
+// Serve Downloaded Video
+axios.get('/:filePath', { data: { "fileName": "output.mp4" } })
+  .then(response => {
+    console.log(response.data);
+  })
+  .catch(error => {
+    console.error(error);
+  });
+
+```
+### Implementation Details
+The provided code in routes.js implements the functionality of the API using Express, ytdl-core, and other libraries. The code includes error handling and cleanup procedures to manage downloaded files on the server.
+
+Feel free to adapt the code and integrate it into your project.
+
+
+Feel free to use and modify this content as needed. If you have any further changes or additions, let me know!
