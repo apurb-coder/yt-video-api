@@ -8,13 +8,11 @@ This API provides functionality to retrieve information about YouTube videos, do
 -------------
 ## Features
 
-1. If the video name contains unwanted special characters, it removes them because special characters can interfere with ffmpeg's functionality.
+1. Can download YouTube videos in the highest possible quality to the lowest possible quality.
 
-2. Can download YouTube videos in the highest possible quality to the lowest possible quality.
+2. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
-3. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
-
-4. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
+3. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
 ## Note
 
