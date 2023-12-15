@@ -198,7 +198,7 @@ router.get("/:filePath", (req, res) => {
             console.log("Succesfully Deleted video.webm");
           }
         });
-        fs.rmdir(`Downloads/${folderPath}`, (error) => {
+        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
           if (error) {
             console.log("Error Deleting File:", error.message);
           } else {
@@ -237,7 +237,7 @@ router.get("/:filePath", (req, res) => {
             console.log("Succesfully Deleted video.webm");
           }
         });
-        fs.rmdir(`Downloads/${folderPath}`, (error) => {
+        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
           if (error) {
             console.log("Error Deleting File:", error.message);
           } else {

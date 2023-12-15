@@ -8,7 +8,7 @@
 ---------------------------------------------------------------------------------------------------
 
 ## NOTE : 
-1. before hiting any end points in the api , always encodeURIComponent() the url , url should be encoded or it will cause error, :yt_link, param must be encoded.
+1. before hiting any end points in the api , always encodeURIComponent() the url , url should be encoded or it will cause error, :yt_link, param must be encoded using encodeURIComponent().
 
 2. also send {"quality":"2160p"} from front-end when hitting end-point /video-download/:yt_link
 

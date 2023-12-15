@@ -47,10 +47,11 @@ const combineVideoAndAudio = (videoPath, audioPath, outputPath) => {
     });
   }, 5000);
 };
+
 // to remove |\*: and other reserved spcial character from the vidoe Title
 const sanitizeFilePath = (filePath) => {
   // Define a regular expression to match special characters
-  const regex = /[\\/:"*?<>|]/g;
+  const regex = /[\\/:"*?<>|]/g; // regex to remove  special character
 
   // Replace special characters with an empty string
   const sanitizedPath = filePath.replace(regex, "");
