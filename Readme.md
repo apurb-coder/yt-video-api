@@ -32,7 +32,7 @@ This API provides functionality to retrieve information about YouTube videos, do
 
 #### Endpoint
 
-```http
+```https
   GET /api/items/${id}
 ```
 
@@ -49,7 +49,7 @@ Returns a JSON object containing video information and available download option
 
 #### Endpoint
 
-```http
+```https
   GET /video-download/:yt_link
 ```
 
@@ -71,7 +71,7 @@ Returns a JSON object with information about the downloaded video, including qua
 
 ### 3. Serve Downloaded Video
 
-```http
+```https
  GET /:filePath
 ```
 
