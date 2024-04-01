@@ -83,7 +83,7 @@ Serve the downloaded video to the client. The server deletes the downloaded file
 #### Parameters
 - `filePath`: Path to the downloaded video file (URL-encoded using encodeURIComponent())
 
-- Response Body:
+- Request Body:
 ```json
 {
   "fileName": "output.mp4"
