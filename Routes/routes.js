@@ -29,9 +29,9 @@ router.get("/video-info/:yt_link", async (req, res) => {
     //filling the video details inside optionDownload object
     optionsDownload.videoDetails = {
       title: info.videoDetails.title,
-      duration: `${Math.floor(info.videoDetails.lengthSeconds / 60)}:${
-        info.videoDetails.lengthSeconds % 60
-      }`,
+      duration: `${Math.floor(info.videoDetails.lengthSeconds / 3600)!==0?`${Math.floor(info.videoDetails.lengthSeconds / 3600)}:`:""}${
+        Math.floor((info.videoDetails.lengthSeconds % 3600)/60)
+      }:${info.videoDetails.lengthSeconds % 60}`,
       thumbnails: info.videoDetails.thumbnails,
       videoId: info.videoDetails.videoId,
     };
@@ -68,7 +68,7 @@ router.get("/video-info/:yt_link", async (req, res) => {
   // sending response of the video-info and available download options
 });
 
-router.get("/video-download/:yt_link", async (req, res) => {
+router.post("/video-download/:yt_link", async (req, res) => {
   try {
     const folder_name = crypto.randomUUID(); // Random folder name
     const folder_path = `Downloads/${folder_name}`;
@@ -150,7 +150,7 @@ router.get("/video-download/:yt_link", async (req, res) => {
 let isDownloadInProgress = false;
 
 // must give the correct file path
-router.get("/:filePath", (req, res) => {
+router.post("/:filePath", (req, res) => {
   const filePath = req.params.filePath; // extracting :filePath from the url
   try {
     if (isDownloadInProgress) {

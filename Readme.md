@@ -2,15 +2,17 @@
 
 This API provides functionality to retrieve information about YouTube videos, download videos, and manage downloaded files on the server.
 
+> [!IMPORTANT]
+> Use this repo **as a Backend/Server** for your **Front-end Application**. 
+
+-------------
 ## Features
 
-1. If the video name contains unwanted special characters, it removes them because special characters can interfere with ffmpeg's functionality.
+1. Can download YouTube videos in the highest possible quality to the lowest possible quality.
 
-2. Can download YouTube videos in the highest possible quality to the lowest possible quality.
+2. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
-3. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
-
-4. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
+3. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
 
 ## Note
 
@@ -32,7 +34,7 @@ This API provides functionality to retrieve information about YouTube videos, do
 
 #### Endpoint
 
-```http
+```https
   GET /api/items/${id}
 ```
 
@@ -49,7 +51,7 @@ Returns a JSON object containing video information and available download option
 
 #### Endpoint
 
-```http
+```https
   GET /video-download/:yt_link
 ```
 
@@ -71,7 +73,7 @@ Returns a JSON object with information about the downloaded video, including qua
 
 ### 3. Serve Downloaded Video
 
-```http
+```https
  GET /:filePath
 ```
 
@@ -127,7 +129,8 @@ axios.get('/:filePath', { data: { "fileName": "output.mp4" } })
   });
 
 ```
-### Implementation Details
+--------------
+## Implementation Details
 The provided code in routes.js implements the functionality of the API using Express, ytdl-core, and other libraries. The code includes error handling and cleanup procedures to manage downloaded files on the server.
 
 Feel free to adapt the code and integrate it into your project.
