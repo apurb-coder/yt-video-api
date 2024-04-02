@@ -81,7 +81,7 @@ Returns a JSON object with information about the downloaded video, including qua
 Serve the downloaded video to the client. The server deletes the downloaded files after the download is complete or encounters an error. Include an object in the request body with the desired video file name.
 
 #### Parameters
-- `filePath`: Path to the downloaded video file (URL-encoded using encodeURIComponent())
+- `filePath`: Path to the downloaded video file (must URL-encoded using encodeURIComponent())
 
 - Request Body:
 ```json
