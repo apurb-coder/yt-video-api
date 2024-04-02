@@ -111,7 +111,7 @@ axios.get('/video-info/:yt_link')
   });
 
 // Download YouTube Video
-axios.get('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
+axios.post('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
   .then(response => {
     console.log(response.data);
   })
@@ -120,7 +120,7 @@ axios.get('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
   });
 
 // Serve Downloaded Video
-axios.get('/:filePath', {  "fileName": "output.mp4"  })
+axios.post('/:filePath', {  "fileName": "output.mp4"  })
   .then(response => {
     console.log(response.data);
   })
