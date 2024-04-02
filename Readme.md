@@ -27,8 +27,8 @@ This API provides functionality to retrieve information about YouTube videos, do
 | Endpoint                                  | Method | Description                                                      |
 |-------------------------------------------|--------|------------------------------------------------------------------|
 | `/video-info/:yt_link`                    | GET    | Retrieve information about a YouTube video.                      |
-| `/video-download/:yt_link`                | GET    | Download a YouTube video to the server.                          |
-| `/:filePath`                              | GET    | Serve the downloaded video to the client.                        |
+| `/video-download/:yt_link`                | POST   | Download a YouTube video to the server.                          |
+| `/:filePath`                              | POST   | Serve the downloaded video to the client.                        |
 
 ### 1. Get Video Information
 
@@ -52,14 +52,14 @@ Returns a JSON object containing video information and available download option
 #### Endpoint
 
 ```https
-  GET /video-download/:yt_link
+  POST /video-download/:yt_link
 ```
 
 #### Description
 Download a YouTube video to the server. Include an object in the request body with the desired video quality.
 
 #### Parameters
-- `yt_link`: YouTube video link (URL-encoded using encodeURIComponent())
+- `yt_link`: YouTube video link (must be URL-encoded using encodeURIComponent())
 - Request Body:
   ```json
     {
@@ -74,14 +74,14 @@ Returns a JSON object with information about the downloaded video, including qua
 ### 3. Serve Downloaded Video
 
 ```https
- GET /:filePath
+ POST /:filePath
 ```
 
 #### Description
 Serve the downloaded video to the client. The server deletes the downloaded files after the download is complete or encounters an error. Include an object in the request body with the desired video file name.
 
 #### Parameters
-- `filePath`: Path to the downloaded video file (URL-encoded using encodeURIComponent())
+- `filePath`: Path to the downloaded video file (already URL-encoded using encodeURIComponent())
 
 - Request Body:
 ```json
@@ -111,7 +111,7 @@ axios.get('/video-info/:yt_link')
   });
 
 // Download YouTube Video
-axios.get('/video-download/:yt_link', { data: { "quality": "your_quality_choice" } })
+axios.post('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
   .then(response => {
     console.log(response.data);
   })
@@ -120,7 +120,7 @@ axios.get('/video-download/:yt_link', { data: { "quality": "your_quality_choice"
   });
 
 // Serve Downloaded Video
-axios.get('/:filePath', { data: { "fileName": "output.mp4" } })
+axios.post('/:filePath', {  "fileName": "output.mp4"  })
   .then(response => {
     console.log(response.data);
   })
