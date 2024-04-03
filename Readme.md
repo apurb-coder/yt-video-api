@@ -74,7 +74,7 @@ Returns a JSON object with information about the downloaded video, including qua
 ### 3. Serve Downloaded Video
 
 ```https
- POST /:filePath
+  GET /:filePath
 ```
 
 #### Description
@@ -83,15 +83,7 @@ Serve the downloaded video to the client. The server deletes the downloaded file
 #### Parameters
 - `filePath`: Path to the downloaded video file (already URL-encoded using encodeURIComponent())
 
-- Request Body:
-```json
-{
-  "fileName": "output.mp4"
-}
-```
 
-> [!TIP]
-> you can get the `fileName` from the response of `/video-download/:yt_link` 
 
 -----------------------
 
@@ -120,7 +112,7 @@ axios.post('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
   });
 
 // Serve Downloaded Video
-axios.post('/:filePath', {  "fileName": "output.mp4"  })
+axios.get('/:filePath')
   .then(response => {
     console.log(response.data);
   })

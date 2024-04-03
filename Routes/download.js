@@ -4,25 +4,28 @@ import ffmpeg from "fluent-ffmpeg";
 
 //function to combine a video and a audio using ffmpeg
 const combineVideoAndAudio = (videoPath, audioPath, outputPath) => {
-  const command = ffmpeg()
-    .input(videoPath)
-    .input(audioPath)
-    .output(outputPath)
-    .videoCodec("copy")
-    .audioCodec("copy")
-    .on("progress", (progress) => {
-      const percentDone = isNaN(progress.percent) ? 100 : progress.percent;
-      console.log("Processing: " + percentDone + "% done");
-    })
-    .on("end", () => {
-      console.log("Conversion finished");
-    })
-    .on("error", (err) => {
-      console.error("Error:", err);
-    });
+  return new Promise((resolve, reject) => {
+    const command = ffmpeg()
+      .input(videoPath)
+      .input(audioPath)
+      .output(outputPath)
+      .videoCodec("copy")
+      .audioCodec("copy")
+      .on("progress", (progress) => {
+        const percentDone = isNaN(progress.percent) ? 100 : progress.percent;
+        console.log("Processing: " + percentDone + "% done");
+      })
+      .on("end", () => {
+        console.log("Conversion finished");
+        resolve(); // Resolve the Promise
+      })
+      .on("error", (err) => {
+        console.error("Error:", err);
+        reject(err); // Reject the Promise
+      });
 
-  command.run();
-  
+    command.run();
+  });
 };
 
 // to remove |\*: and other reserved spcial character from the vidoe Title
@@ -72,9 +75,9 @@ const videoAudioDownloadBoth = (itagVal, videoId, folder) => {
         });
 
         // When the download is complete, show a message
-        outputStreamAudio.on("finish", () => {
+        outputStreamAudio.on("finish", async() => {
           console.log(`Finished downloading: ${outputFilePathAudio}`);
-          combineVideoAndAudio(
+          await combineVideoAndAudio(
             outputFilePathVideo,
             outputFilePathAudio,
             outputFilePath

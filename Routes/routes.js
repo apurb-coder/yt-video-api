@@ -2,6 +2,8 @@ import express from "express";
 import ytdl from "ytdl-core";
 import crypto from "crypto";
 import fs from "fs";
+import path from "path";
+import * as rimraf from "rimraf"; // used for deleting of file
 import {
   videoDownloadOnly,
   videoAudioDownloadBoth,
@@ -10,6 +12,7 @@ import {
 
 const router = express.Router();
 
+let fileName_ = "";
 // NOTE: ':yt_link' must be encoded using encodeURIComponent() before hitting the endpoint
 router.get("/video-info/:yt_link", async (req, res) => {
   try {
@@ -29,9 +32,13 @@ router.get("/video-info/:yt_link", async (req, res) => {
     //filling the video details inside optionDownload object
     optionsDownload.videoDetails = {
       title: info.videoDetails.title,
-      duration: `${Math.floor(info.videoDetails.lengthSeconds / 3600)!==0?`${Math.floor(info.videoDetails.lengthSeconds / 3600)}:`:""}${
-        Math.floor((info.videoDetails.lengthSeconds % 3600)/60)
-      }:${info.videoDetails.lengthSeconds % 60}`,
+      duration: `${
+        Math.floor(info.videoDetails.lengthSeconds / 3600) !== 0
+          ? `${Math.floor(info.videoDetails.lengthSeconds / 3600)}:`
+          : ""
+      }${Math.floor((info.videoDetails.lengthSeconds % 3600) / 60)}:${
+        info.videoDetails.lengthSeconds % 60
+      }`,
       thumbnails: info.videoDetails.thumbnails,
       videoId: info.videoDetails.videoId,
     };
@@ -132,6 +139,7 @@ router.post("/video-download/:yt_link", async (req, res) => {
     }
 
     const filePath = `${folder_path}/${fileName}`;
+    fileName_ = fileName;
     console.log(filePath);
     // Send a response to the client
     res.json({
@@ -150,105 +158,49 @@ router.post("/video-download/:yt_link", async (req, res) => {
 let isDownloadInProgress = false;
 
 // must give the correct file path
-router.post("/:filePath", (req, res) => {
-  const filePath = req.params.filePath; // extracting :filePath from the url
+// Must give the correct file path
+router.get("/:filePath", async (req, res) => {
+  const filePath = req.params.filePath;
+  console.log(`http://localhost:8000/${filePath}`);
+  const fileName = fileName_;
+
   try {
-    if (isDownloadInProgress) {
-      // If a download is already in progress, send a response indicating that
-      res.status(409).send("Download already in progress");
-      return;
-    }
+    // Set appropriate headers for file download
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Length", fs.statSync(filePath).size);
 
-    const fileName = req.body.fileName || "output.mp4";
+    // Stream the file to the client
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
 
-    isDownloadInProgress = true;
-    res.download(filePath, fileName, (err) => {
-      isDownloadInProgress = false; // Reset the flag when the download is complete or encounters an error
+    // Clean up temporary files and folders after the download is complete
+    fileStream.on("close", () => cleanupDownload(filePath));
 
-      if (err) {
-        // Handle error, such as file not found
-        console.error("Error downloading file:", err);
-        // deleting files and folder cause File Download Failed
-        const folderPath = decodeURLAndFolderName(filePath);
-        fs.unlink(filePath,(error)=>{
-          if (error) {
-            console.log(`Error Deleteing File ${filePath}`);
-          } else {
-            console.log(`Successfully Deleted ${filePath}`);
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File audio.webp");
-          } else {
-            console.log("Successfully Deleted audio.webp");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.mp4");
-          } else {
-            console.log("Successfully Deleted video.mp4");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.webm");
-          } else {
-            console.log("Succesfully Deleted video.webm");
-          }
-        });
-        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
-          if (error) {
-            console.log("Error Deleting File:", error.message);
-          } else {
-            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
-          }
-        });
-      } else {
-        console.log("File downloaded successfully");
-        const folderPath = decodeURLAndFolderName(filePath);
-        //deleting file after the download has finished
-        fs.unlink(filePath, (error) => {
-          if (error) {
-            console.log(`Error Deleteing File ${filePath}`);
-          } else {
-            console.log(`Successfully Deleted ${filePath}`);
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File audio.webp");
-          } else {
-            console.log("Successfully Deleted audio.webp");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.mp4");
-          } else {
-            console.log("Successfully Deleted video.mp4");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.webm");
-          } else {
-            console.log("Succesfully Deleted video.webm");
-          }
-        });
-        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
-          if (error) {
-            console.log("Error Deleting File:", error.message);
-          } else {
-            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
-          }
-        });
-      }
+    // Handle errors during file streaming
+    fileStream.on("error", (err) => {
+      console.error("Error streaming file:", err);
+      cleanupDownload(filePath);
+      res.status(500).send("Error streaming file");
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.error("Error downloading file:", err);
+    res.status(500).send("Error downloading file");
   }
 });
+
+// Function to clean up temporary files and folders
+function cleanupDownload(filePath) {
+  let folderPath = decodeURIComponent(filePath);
+  folderPath = `Downloads/${folderPath.split("/")[1]}`;
+
+  // Get a list of all files in the directory
+  const files = fs.readdirSync(folderPath);
+
+  // Delete each file
+  for (const file of files) {
+    rimraf.sync(path.join(folderPath, file));
+  }
+}
 
 export default router;
