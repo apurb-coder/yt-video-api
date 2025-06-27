@@ -1,139 +1,168 @@
-# You-Tube Video Downloader API
+# YouTube Video Downloader API (Backend)
 
-This API provides functionality to retrieve information about YouTube videos, download videos, and manage downloaded files on the server.
+This API allows downloading YouTube videos in various qualities (including merging separate audio/video streams) using `yt-dlp` and `ffmpeg`.
 
-> [!IMPORTANT]
-> Use this repo **as a Backend/Server** for your **Front-end Application**. 
+> ⚠️ **IMPORTANT**: Use this repository as the **backend/server** for your **frontend video downloader app**.
 
--------------
-## Features
+---
 
-1. Can download YouTube videos in the highest possible quality to the lowest possible quality.
+## 🚀 Features
 
-2. YouTube allows us to download 2160p video without audio. Still, in case the downloaded 2160p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
+1. Download YouTube videos in various qualities from 144p to 2160p (4K).
+2. Automatically detects and merges separate video-only and audio-only streams (like in 1080p/4K videos).
+3. Uses `yt-dlp` under the hood for format selection and downloading.
+4. Uses `ffmpeg` (handled by `yt-dlp`) for merging video/audio.
 
-3. Similarly, YouTube allows us to download 1080p video without audio. If the downloaded 1080p video has audio, the API combines the video (without audio) and audio separately using ffmpeg.
+---
 
-## Note
+## 🧱 Prerequisites
 
-1. Before hitting any endpoints in the API, always use `encodeURIComponent()` for the URL. The `:yt_link` parameter must be encoded using `encodeURIComponent()`.
+This project uses:
 
-2. When hitting the endpoint `/video-download/:yt_link`, send `{"quality":"2160p"}` from the front-end to specify the desired video quality.
+- Node.js (tested on v18+)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Python-based YouTube downloader)
+- Python (required for yt-dlp)
+- ffmpeg (required for video/audio merging)
 
-3. When hitting the endpoint `/:filePath`, send `{"fileName":"output.mp4"}` from the front-end to specify the desired video file name.
+---
 
-## 3 Endpoints
+## 📦 Installation (Requirements Setup)
 
-| Endpoint                                  | Method | Description                                                      |
-|-------------------------------------------|--------|------------------------------------------------------------------|
-| `/video-info/:yt_link`                    | GET    | Retrieve information about a YouTube video.                      |
-| `/video-download/:yt_link`                | POST   | Download a YouTube video to the server.                          |
-| `/:filePath`                              | POST   | Serve the downloaded video to the client.                        |
+### ✅ For Linux/macOS:
 
-### 1. Get Video Information
+```bash
+# From backend/ directory
+chmod +x requirements.sh
+./requirements.sh
+````
 
-#### Endpoint
+### ✅ For Windows (PowerShell):
 
-```https
-  GET /api/items/${id}
+```powershell
+# From backend\ directory
+.\requirements.ps1
 ```
 
-#### Description
-Retrieve information about a YouTube video, including title, duration, and thumbnails.
+These scripts will:
 
-#### Parameters
-- `yt_link`: YouTube video link (URL-encoded using encodeURIComponent())
+* Check/install Python (Windows only)
+* Install `yt-dlp` via `pip`
+* Install all Node.js dependencies using `yarn`
 
-#### Response
-Returns a JSON object containing video information and available download options.
+---
 
-### 2. Download YouTube Video
+## 📌 Notes
 
-#### Endpoint
+1. All YouTube video URLs **must be URL-encoded** using `encodeURIComponent()` before sending them to the API.
+2. To specify quality (e.g., 720p, 1080p), pass `"quality": "720p"` in the request body.
+3. Downloaded videos are auto-cleaned from the server after being served.
 
-```https
-  POST /video-download/:yt_link
+---
+
+## 📨 API Endpoints
+
+| Endpoint                   | Method | Description                                          |
+| -------------------------- | ------ | ---------------------------------------------------- |
+| `/video-info/:yt_link`     | GET    | Get video info and available quality options         |
+| `/video-download/:yt_link` | POST   | Download and merge YouTube video in selected quality |
+| `/:filePath`               | GET    | Serve the final downloadable video to client         |
+
+---
+
+### 📥 1. Get Video Information
+
+```http
+GET /video-info/:yt_link
 ```
 
-#### Description
-Download a YouTube video to the server. Include an object in the request body with the desired video quality.
+* `yt_link` should be a URL-encoded YouTube link
+* Returns: video `title`, `duration`, `thumbnails`, and available `quality` options (with/without audio)
 
-#### Parameters
-- `yt_link`: YouTube video link (must be URL-encoded using encodeURIComponent())
-- Request Body:
-  ```json
-    {
-    "quality": "your_quality_choice"
-    }
-  ```
+---
 
-#### Response
-Returns a JSON object with information about the downloaded video, including quality, file path, and file name.
+### 📥 2. Download Video
 
-
-### 3. Serve Downloaded Video
-
-```https
- POST /:filePath
+```http
+POST /video-download/:yt_link
 ```
 
-#### Description
-Serve the downloaded video to the client. The server deletes the downloaded files after the download is complete or encounters an error. Include an object in the request body with the desired video file name.
+* Body:
 
-#### Parameters
-- `filePath`: Path to the downloaded video file (already URL-encoded using encodeURIComponent())
-
-- Request Body:
 ```json
 {
-  "fileName": "output.mp4"
+  "quality": "720p"
 }
 ```
 
-> [!TIP]
-> you can get the `fileName` from the response of `/video-download/:yt_link` 
+* Downloads and merges audio (if separate). File is saved on server temporarily.
 
------------------------
+---
 
-## Example Usage
+### 📥 3. Serve Downloaded File
 
-``` js
-// Example request using axios
-const axios = require('axios');
+```http
+GET /:filePath
+```
 
-// Get Video Information
-axios.get('/video-info/:yt_link')
-  .then(response => {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.error(error);
-  });
+* `filePath` is a URL-encoded path received from `/video-download/:yt_link`
+* Triggers download and deletes temp files afterward
 
-// Download YouTube Video
-axios.post('/video-download/:yt_link', {  "quality": "your_quality_choice"  })
-  .then(response => {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.error(error);
-  });
+---
 
-// Serve Downloaded Video
-axios.post('/:filePath', {  "fileName": "output.mp4"  })
-  .then(response => {
-    console.log(response.data);
-  })
-  .catch(error => {
-    console.error(error);
-  });
+## ✅ Example Usage with Axios
+
+```js
+import axios from "axios";
+
+// Get Video Info
+axios.get("/video-info/" + encodeURIComponent("https://youtube.com/watch?v=xyz123"))
+  .then(res => console.log(res.data));
+
+// Download Video
+axios.post("/video-download/" + encodeURIComponent("https://youtube.com/watch?v=xyz123"), {
+  quality: "1080p"
+}).then(res => console.log(res.data));
+
+// Download Served File
+axios.get(decodeURIComponent(serverResponse.filePath), {
+  responseType: "blob"
+}).then(response => {
+  // Save blob as file in browser
+});
+```
+
+---
+
+## 🛠️ Implementation Notes
+
+* `yt-dlp` handles downloading of video/audio streams.
+* `ffmpeg` (automatically used by `yt-dlp`) merges them if needed.
+* Files are stored in a temporary folder and cleaned after delivery.
+
+---
+
+## 📁 Folder Structure (Backend)
 
 ```
---------------
-## Implementation Details
-The provided code in routes.js implements the functionality of the API using Express, ytdl-core, and other libraries. The code includes error handling and cleanup procedures to manage downloaded files on the server.
+backend/
+├── Routes/
+│   └── routes.js          # Main API endpoints
+├── download.js            # Utility functions
+├── requirements.sh        # Linux/macOS setup script
+├── requirements.ps1       # Windows setup script
+├── package.json
+└── ...
+```
 
-Feel free to adapt the code and integrate it into your project.
+---
 
+## ✅ License
 
-Feel free to use and modify this content as needed. If you have any further changes or additions, let me know!
+MIT (free to use and modify)
+
+```
+
+---
+
+Let me know if you'd like to add environment variables, Docker support, or PM2-based production setup as well.
+```

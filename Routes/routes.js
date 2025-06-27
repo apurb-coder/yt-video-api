@@ -1,144 +1,132 @@
 import express from "express";
-import ytdl from "ytdl-core";
+import { exec } from "child_process";
 import crypto from "crypto";
 import fs from "fs";
+import path from "path";
+import * as rimraf from "rimraf"; // for deleting files
 import {
-  videoDownloadOnly,
-  videoAudioDownloadBoth,
-  decodeURLAndFolderName,
+  getYouTubeVideoId,
+  sanitizeFilePath,
 } from "./download.js";
 
 const router = express.Router();
+let fileName_ = "";
 
-// NOTE: ':yt_link' must be encoded using encodeURIComponent() before hitting the endpoint
 router.get("/video-info/:yt_link", async (req, res) => {
   try {
-    //use encodeURIComponent() to encode utl in the front-end and then send it to back-end
-    const videoId = req.params.yt_link; // url se :yt_link ka content extract karta hai
+    const videoId = decodeURIComponent(req.params.yt_link);
+    const extractedVideoId = getYouTubeVideoId(videoId);
+    if (!extractedVideoId) throw new Error("Invalid YouTube video link");
 
-    if (!videoId) {
-      throw new Error("Invalid YouTube video link");
-    }
+    const { stdout } = await new Promise((resolve, reject) => {
+      exec(
+        `yt-dlp --dump-json https://www.youtube.com/watch?v=${extractedVideoId}`,
+        (error, stdout, stderr) => {
+          if (error) return reject(error);
+          resolve({ stdout });
+        }
+      );
+    });
 
-    // Use await to wait for the getInfo operation to complete
-    const info = await ytdl.getInfo(videoId);
-
-    const formats = ytdl.filterFormats(info.formats, "video");
-    // object of available download options
-    const optionsDownload = { videoDetails: {}, quality: {} };
-    //filling the video details inside optionDownload object
-    optionsDownload.videoDetails = {
-      title: info.videoDetails.title,
-      duration: `${Math.floor(info.videoDetails.lengthSeconds / 3600)!==0?`${Math.floor(info.videoDetails.lengthSeconds / 3600)}:`:""}${
-        Math.floor((info.videoDetails.lengthSeconds % 3600)/60)
-      }:${info.videoDetails.lengthSeconds % 60}`,
-      thumbnails: info.videoDetails.thumbnails,
-      videoId: info.videoDetails.videoId,
+    const info = JSON.parse(stdout);
+    const optionsDownload = {
+      videoDetails: {
+        title: info.title,
+        duration: `${
+          Math.floor(info.duration / 3600) !== 0
+            ? `${Math.floor(info.duration / 3600)}:`
+            : ""
+        }${Math.floor((info.duration % 3600) / 60)}:${info.duration % 60}`,
+        thumbnails: info.thumbnails,
+        videoId: info.id,
+      },
+      quality: {},
     };
 
-    formats.forEach((format) => {
-      if (format.container === "mp4") {
-        optionsDownload.quality[format.qualityLabel] = {
-          container: format.container,
-          itag: format.itag,
-          audioExist: format.audioCodec === null ? false : true,
-        };
-      }
-      if (
-        format.qualityLabel === "2160p" ||
-        format.qualityLabel === "1440p" ||
-        format.qualityLabel === "2160p60"
-      ) {
-        optionsDownload.quality[format.qualityLabel] = {
-          container: format.container,
-          itag: format.itag,
-          audioExist: format.audioCodec === null ? false : true,
+    info.formats.forEach((format) => {
+      if (format.ext === "mp4" && format.vcodec !== "none") {
+        optionsDownload.quality[format.format_note] = {
+          container: format.ext,
+          itag: format.format_id,
+          audioExist: format.acodec !== "none",
         };
       }
     });
 
-    // Sending response after getting video-info and available download options
-    // res.json(info)
     res.json(optionsDownload);
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
     res.status(500).json({ error: error.message });
   }
-
-  // sending response of the video-info and available download options
 });
 
 router.post("/video-download/:yt_link", async (req, res) => {
   try {
-    const folder_name = crypto.randomUUID(); // Random folder name
-    const folder_path = `Downloads/${folder_name}`;
+    const folderName = crypto.randomUUID();
+    const folderPath = `Downloads/${folderName}`;
+    fs.mkdirSync(folderPath);
 
-    // Creating folder with folder_name
-    fs.mkdirSync(folder_path);
+    const videoId = decodeURIComponent(req.params.yt_link);
+    const extractedVideoId = getYouTubeVideoId(videoId);
+    if (!extractedVideoId) throw new Error("Invalid YouTube video link");
 
-    const videoId = req.params.yt_link;
+    const { stdout } = await new Promise((resolve, reject) => {
+      exec(
+        `yt-dlp --dump-json https://www.youtube.com/watch?v=${extractedVideoId}`,
+        (error, stdout) => {
+          if (error) return reject(error);
+          resolve({ stdout });
+        }
+      );
+    });
 
-    if (!videoId) {
-      throw new Error("Invalid YouTube video link");
-    }
-
-    const info = await ytdl.getInfo(videoId);
-    const formats = ytdl.filterFormats(info.formats, "video");
-
-    const optionsDownload = {};
-
-    formats.forEach((format) => {
-      if (format.container === "mp4") {
-        optionsDownload[format.qualityLabel] = {
-          container: format.container,
-          itag: format.itag,
-          audioExist: format.audioCodec === null ? false : true,
-          vid_id: info.videoDetails.videoId,
-        };
-      }
-      if (
-        format.qualityLabel === "2160p" ||
-        format.qualityLabel === "1440p" ||
-        format.qualityLabel === "2160p60"
-      ) {
-        optionsDownload[format.qualityLabel] = {
-          container: format.container,
-          itag: format.itag,
-          audioExist: format.audioCodec === null ? false : true,
-          vid_id: info.videoDetails.videoId,
+    const info = JSON.parse(stdout);
+    const optionsDownload = { quality: {} };
+    info.formats.forEach((format) => {
+      if (format.ext === "mp4" && format.vcodec !== "none") {
+        optionsDownload.quality[format.format_note] = {
+          container: format.ext,
+          itag: format.format_id,
+          audioExist: format.acodec !== "none",
         };
       }
     });
 
-    const reqested_quality = req.body.quality || "720p";
+    const requestedQuality = req.body.quality || "720p";
+    const qualityInfo = optionsDownload.quality[requestedQuality];
+    if (!qualityInfo?.itag) throw new Error("Requested quality not available");
 
-    let fileName;
+    const itagVal = qualityInfo.itag;
+    const hasAudio = qualityInfo.audioExist;
+    const ytLink = `https://www.youtube.com/watch?v=${extractedVideoId}`;
 
-    if (
-      optionsDownload[reqested_quality].audioExist === false ||
-      optionsDownload[reqested_quality].audioExist === undefined
-    ) {
-      fileName = await videoAudioDownloadBoth(
-        optionsDownload[reqested_quality].itag,
-        optionsDownload[reqested_quality].vid_id,
-        folder_name
+    const fileName = await new Promise((resolve, reject) => {
+      const formatArg = hasAudio
+        ? `${itagVal}`
+        : `${itagVal}+bestaudio[ext=m4a]`;
+
+      exec(
+        `yt-dlp -f "${formatArg}" -o "Downloads/${folderName}/%(title)s.%(ext)s" --merge-output-format mp4 ${ytLink}`,
+        (error, stdout, stderr) => {
+          if (error) return reject(error);
+
+          exec(`yt-dlp --get-title ${ytLink}`, (error, titleOut) => {
+            if (error) return reject(error);
+            const sanitized = sanitizeFilePath(titleOut.trim());
+            resolve(`${sanitized}.mp4`);
+          });
+        }
       );
-    } else {
-      fileName = await videoDownloadOnly(
-        optionsDownload[reqested_quality].itag,
-        optionsDownload[reqested_quality].vid_id,
-        folder_name
-      );
-    }
+    });
 
-    const filePath = `${folder_path}/${fileName}`;
-    console.log(filePath);
-    // Send a response to the client
+    const filePath = `${folderPath}/${fileName}`;
+    fileName_ = fileName;
+
     res.json({
-      itag: optionsDownload[reqested_quality].itag,
-      quality: reqested_quality,
+      itag: itagVal,
+      quality: requestedQuality,
       filePath: encodeURIComponent(filePath),
-      fileName: fileName,
+      fileName,
     });
   } catch (error) {
     console.error(error.message);
@@ -146,109 +134,39 @@ router.post("/video-download/:yt_link", async (req, res) => {
   }
 });
 
-// to handle and avoid multiple download request
-let isDownloadInProgress = false;
+router.get("/:filePath", async (req, res) => {
+  const filePath = req.params.filePath;
+  console.log(`http://localhost:8000/${filePath}`);
+  const fileName = fileName_ || "output.mp4";
 
-// must give the correct file path
-router.post("/:filePath", (req, res) => {
-  const filePath = req.params.filePath; // extracting :filePath from the url
   try {
-    if (isDownloadInProgress) {
-      // If a download is already in progress, send a response indicating that
-      res.status(409).send("Download already in progress");
-      return;
-    }
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Length", fs.statSync(filePath).size);
 
-    const fileName = req.body.fileName || "output.mp4";
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
 
-    isDownloadInProgress = true;
-    res.download(filePath, fileName, (err) => {
-      isDownloadInProgress = false; // Reset the flag when the download is complete or encounters an error
-
-      if (err) {
-        // Handle error, such as file not found
-        console.error("Error downloading file:", err);
-        // deleting files and folder cause File Download Failed
-        const folderPath = decodeURLAndFolderName(filePath);
-        fs.unlink(filePath,(error)=>{
-          if (error) {
-            console.log(`Error Deleteing File ${filePath}`);
-          } else {
-            console.log(`Successfully Deleted ${filePath}`);
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File audio.webp");
-          } else {
-            console.log("Successfully Deleted audio.webp");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.mp4");
-          } else {
-            console.log("Successfully Deleted video.mp4");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.webm");
-          } else {
-            console.log("Succesfully Deleted video.webm");
-          }
-        });
-        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
-          if (error) {
-            console.log("Error Deleting File:", error.message);
-          } else {
-            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
-          }
-        });
-      } else {
-        console.log("File downloaded successfully");
-        const folderPath = decodeURLAndFolderName(filePath);
-        //deleting file after the download has finished
-        fs.unlink(filePath, (error) => {
-          if (error) {
-            console.log(`Error Deleteing File ${filePath}`);
-          } else {
-            console.log(`Successfully Deleted ${filePath}`);
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/audio.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File audio.webp");
-          } else {
-            console.log("Successfully Deleted audio.webp");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.mp4`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.mp4");
-          } else {
-            console.log("Successfully Deleted video.mp4");
-          }
-        });
-        fs.unlink(`Downloads/${folderPath}/video.webm`, (error) => {
-          if (error) {
-            console.log("Error Deleteing File video.webm");
-          } else {
-            console.log("Succesfully Deleted video.webm");
-          }
-        });
-        fs.rmdir(`Downloads/${folderPath}`, { recursive: true }, (error) => {
-          if (error) {
-            console.log("Error Deleting File:", error.message);
-          } else {
-            console.log(`Deleted Successfully Deleted Folder-${folderPath}`);
-          }
-        });
-      }
+    fileStream.on("close", () => cleanupDownload(filePath));
+    fileStream.on("error", (err) => {
+      console.error("Error streaming file:", err);
+      cleanupDownload(filePath);
+      res.status(500).send("Error streaming file");
     });
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.error("Error downloading file:", err);
+    res.status(500).send("Error downloading file");
   }
 });
+
+function cleanupDownload(filePath) {
+  let folderPath = decodeURIComponent(filePath);
+  folderPath = `Downloads/${folderPath.split("/")[1]}`;
+
+  const files = fs.readdirSync(folderPath);
+  for (const file of files) {
+    rimraf.sync(path.join(folderPath, file));
+  }
+}
 
 export default router;
