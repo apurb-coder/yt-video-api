@@ -162,8 +162,3 @@ backend/
 MIT (free to use and modify)
 
 ```
-
----
-
-Let me know if you'd like to add environment variables, Docker support, or PM2-based production setup as well.
-```
