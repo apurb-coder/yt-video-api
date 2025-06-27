@@ -2,7 +2,8 @@
 
 This API allows downloading YouTube videos in various qualities (including merging separate audio/video streams) using `yt-dlp` and `ffmpeg`.
 
-> ⚠️ **IMPORTANT**: Use this repository as the **backend/server** for your **frontend video downloader app**.
+> [!IMPORTANT] 
+> Use this repository as the **backend/server** for your **frontend video downloader app**.
 
 ---
 
