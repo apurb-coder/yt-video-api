@@ -50,8 +50,12 @@ These scripts will:
 * Install `yt-dlp` via `pip`
 * Install all Node.js dependencies using `yarn`
 
----
+### ✅ For running the server:
 
+```bash
+yarn start
+````
+---
 ## 📌 Notes
 
 1. All YouTube video URLs **must be URL-encoded** using `encodeURIComponent()` before sending them to the API.
@@ -160,3 +164,4 @@ backend/
 ## ✅ License
 
 MIT (free to use and modify)
+
