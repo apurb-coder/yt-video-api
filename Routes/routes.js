@@ -7,6 +7,15 @@ import {
   handleInstagramInfo,
   handleInstagramDownload,
 } from "../services/instagram.js";
+import {
+  handleTwitterInfo,
+  handleTwitterDownload,
+} from "../services/twitter.js";
+import { handleRedditInfo, handleRedditDownload } from "../services/reddit.js";
+import {
+  handleFacebookInfo,
+  handleFacebookDownload,
+} from "../services/facebook.js";
 import fs from "fs";
 import path from "path";
 import * as rimraf from "rimraf";
@@ -17,6 +26,9 @@ let fileName_ = "";
 function detectPlatform(url) {
   if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
   if (/instagram\.com/.test(url)) return "instagram";
+  if (/twitter\.com/.test(url)) return "twitter";
+  if (/reddit\.com/.test(url)) return "reddit";
+  if (/facebook\.com/.test(url)) return "facebook";
   return null;
 }
 
@@ -27,6 +39,9 @@ router.get("/video-info/:link", async (req, res) => {
     if (platform === "youtube") return await handleYouTubeInfo(rawLink, res);
     if (platform === "instagram")
       return await handleInstagramInfo(rawLink, res);
+    if (platform === "twitter") return await handleTwitterInfo(rawLink, res);
+    if (platform === "reddit") return await handleRedditInfo(rawLink, res);
+    if (platform === "facebook") return await handleFacebookInfo(rawLink, res);
     throw new Error("Unsupported platform");
   } catch (err) {
     console.error(err.message);
@@ -45,6 +60,21 @@ router.post("/video-download/:link", async (req, res) => {
     }
     if (platform === "instagram") {
       const result = await handleInstagramDownload(rawLink);
+      fileName_ = result.fileName;
+      return res.json(result);
+    }
+    if (platform === "twitter") {
+      const result = await handleTwitterDownload(rawLink);
+      fileName_ = result.fileName;
+      return res.json(result);
+    }
+    if (platform === "reddit") {
+      const result = await handleRedditDownload(rawLink);
+      fileName_ = result.fileName;
+      return res.json(result);
+    }
+    if (platform === "facebook") {
+      const result = await handleFacebookDownload(rawLink);
       fileName_ = result.fileName;
       return res.json(result);
     }
