@@ -26,7 +26,7 @@ let fileName_ = "";
 function detectPlatform(url) {
   if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
   if (/instagram\.com/.test(url)) return "instagram";
-  if (/twitter\.com/.test(url)) return "twitter";
+  if (/twitter\.com|x\.com/.test(url)) return "twitter";
   if (/reddit\.com/.test(url)) return "reddit";
   if (/facebook\.com/.test(url)) return "facebook";
   return null;
